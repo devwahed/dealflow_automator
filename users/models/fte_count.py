@@ -3,12 +3,10 @@ import uuid
 from django.db import models
 
 from users.models.ownership import OwnershipType
-from users.models.user import User
 
 
 class FTECount(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
     ownership_type = models.ForeignKey(OwnershipType, on_delete=models.CASCADE)
     min_count = models.PositiveIntegerField()
     max_count = models.PositiveIntegerField()
