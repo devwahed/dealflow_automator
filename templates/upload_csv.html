@@ -1,0 +1,155 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Upload CSV</title>
+  <style>
+    body {
+      font-family: "Segoe UI", sans-serif;
+      background-color: #f9f9f9;
+      margin: 0;
+    }
+
+    .upload-container {
+      max-width: 600px;
+      margin: 100px auto;
+      text-align: center;
+      padding: 40px;
+      background-color: white;
+      border: 1px solid #ddd;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+    }
+
+    .upload-container h2 {
+      margin-bottom: 20px;
+      color: #333;
+    }
+
+    input[type="file"] {
+      margin: 16px auto;
+      padding: 10px;
+      font-size: 16px;
+    }
+
+    button {
+      padding: 10px 24px;
+      font-size: 16px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #0056b3;
+    }
+
+    .progress-bar {
+      width: 0;
+      height: 20px;
+      background-color: #28a745;
+      margin-top: 10px;
+      border-radius: 5px;
+      transition: width 0.4s;
+    }
+
+    .progress-wrapper {
+      width: 100%;
+      background-color: #eee;
+      margin-top: 20px;
+      border-radius: 5px;
+    }
+
+    .loader {
+      display: none;
+      margin: 30px auto 10px;
+      border: 6px solid #f3f3f3;
+      border-top: 6px solid #007bff;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    #file-link {
+      margin-top: 20px;
+      display: none;
+    }
+
+    #file-link a {
+      color: #28a745;
+      font-weight: bold;
+      text-decoration: none;
+    }
+
+    #file-link a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div class="upload-container">
+    <h2>📤 Upload Your CSV File</h2>
+    <input type="file" id="csvFile" accept=".csv" />
+    <button onclick="uploadCSV()">Upload</button>
+
+    <div class="progress-wrapper">
+      <div id="progress" class="progress-bar"></div>
+    </div>
+
+    <div id="loader" class="loader"></div>
+    <div id="file-link"></div>
+  </div>
+
+  <script>
+    function uploadCSV() {
+      const file = document.getElementById("csvFile").files[0];
+      if (!file) return alert("Please select a file");
+
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const xhr = new XMLHttpRequest();
+      xhr.open("POST", "{% url 'upload_csv' %}", true);
+      xhr.setRequestHeader("X-CSRFToken", "{{ csrf_token }}");
+
+      xhr.upload.onprogress = function(e) {
+        if (e.lengthComputable) {
+          const percent = (e.loaded / e.total) * 100;
+          document.getElementById("progress").style.width = percent + "%";
+        }
+      };
+
+      xhr.onload = function() {
+        const result = JSON.parse(xhr.responseText);
+        if (xhr.status === 200 && result.file_url) {
+          const loader = document.getElementById("loader");
+          loader.style.display = "block";
+
+          setTimeout(() => {
+            loader.style.display = "none";
+            const linkDiv = document.getElementById("file-link");
+            linkDiv.style.display = "block";
+            linkDiv.innerHTML = `<a href="${result.file_url}" target="_blank">✅ Download your uploaded CSV</a>`;
+          }, 5000); // Show loader for 5 seconds
+        } else {
+          alert("Upload failed: " + (result.message || "Unknown error"));
+        }
+      };
+
+      xhr.onerror = function() {
+        alert("An error occurred during the upload.");
+      };
+
+      xhr.send(formData);
+    }
+  </script>
+</body>
+</html>
