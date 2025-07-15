@@ -4,13 +4,13 @@ from django.urls import path
 
 from users.views import configuration
 from users.views.configuration import submit_configuration, get_configuration
-from users.views.upload_csv import upload_csv
+from users.views.upload_csv import UploadAndTierView
 
 urlpatterns = [
     path('', configuration, name='create_user_configuration'),
     path("submit-configuration/", submit_configuration, name="submit_configuration"),
     path("get-configuration/", get_configuration, name="get-configuration"),
-    path("upload-csv/", upload_csv, name="upload_csv"),
+    path("upload-csv/", UploadAndTierView.as_view(), name="upload_csv"),
 
 ]
 

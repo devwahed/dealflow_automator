@@ -2,7 +2,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Upload CSV</title>
+  <title>Upload CSV/XLSX</title>
   <style>
     body {
       font-family: "Segoe UI", sans-serif;
@@ -78,34 +78,26 @@
       100% { transform: rotate(360deg); }
     }
 
-    #file-link {
+    #download-message {
       margin-top: 20px;
       display: none;
-    }
-
-    #file-link a {
-      color: #28a745;
       font-weight: bold;
-      text-decoration: none;
-    }
-
-    #file-link a:hover {
-      text-decoration: underline;
+      color: #28a745;
     }
   </style>
 </head>
 <body>
   <div class="upload-container">
-    <h2>📤 Upload Your CSV File</h2>
-    <input type="file" id="csvFile" accept=".csv" />
-    <button onclick="uploadCSV()">Upload</button>
+    <h2>📤 Upload Your CSV or Excel File</h2>
+    <input type="file" id="csvFile" accept=".csv,.xlsx" />
+    <button onclick="uploadCSV()">Upload & Process</button>
 
     <div class="progress-wrapper">
       <div id="progress" class="progress-bar"></div>
     </div>
 
     <div id="loader" class="loader"></div>
-    <div id="file-link"></div>
+    <div id="download-message">✅ Your file is ready for download</div>
   </div>
 
   <script>
@@ -118,6 +110,7 @@
 
       const xhr = new XMLHttpRequest();
       xhr.open("POST", "{% url 'upload_csv' %}", true);
+      xhr.responseType = 'blob';
       xhr.setRequestHeader("X-CSRFToken", "{{ csrf_token }}");
 
       xhr.upload.onprogress = function(e) {
@@ -128,25 +121,29 @@
       };
 
       xhr.onload = function() {
-        const result = JSON.parse(xhr.responseText);
-        if (xhr.status === 200 && result.file_url) {
-          const loader = document.getElementById("loader");
-          loader.style.display = "block";
-
-          setTimeout(() => {
-            loader.style.display = "none";
-            const linkDiv = document.getElementById("file-link");
-            linkDiv.style.display = "block";
-            linkDiv.innerHTML = `<a href="${result.file_url}" target="_blank">✅ Download your uploaded CSV</a>`;
-          }, 5000); // Show loader for 5 seconds
+        if (xhr.status === 200) {
+          const blob = new Blob([xhr.response], { type: 'text/csv' });
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = 'processed.csv';
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          document.getElementById("loader").style.display = "none";
+          document.getElementById("download-message").style.display = "block";
         } else {
-          alert("Upload failed: " + (result.message || "Unknown error"));
+          alert("Processing failed. Please check your input file.");
         }
       };
 
       xhr.onerror = function() {
         alert("An error occurred during the upload.");
       };
+
+      document.getElementById("loader").style.display = "block";
+      document.getElementById("progress").style.width = "0%";
+      document.getElementById("download-message").style.display = "none";
 
       xhr.send(formData);
     }
