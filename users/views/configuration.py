@@ -17,6 +17,7 @@ def submit_configuration(request):
     if request.method == "POST":
         try:
             data = json.loads(request.body)
+
             superuser = User.objects.filter(is_superuser=True).first()
             if not superuser:
                 return JsonResponse({"status": "error", "message": "Superuser not found"}, status=404)
@@ -24,10 +25,10 @@ def submit_configuration(request):
             user_config, _ = UserConfiguration.objects.get_or_create(user=superuser)
             user_config.configuration_json = data
             user_config.save()
-
-            return JsonResponse({"status": "success"})
+            return JsonResponse({"status": "success", "next": "/upload-csv/"})
         except Exception as e:
             return JsonResponse({"status": "error", "message": str(e)}, status=400)
+
     return JsonResponse({"error": "Invalid method"}, status=405)
 
 

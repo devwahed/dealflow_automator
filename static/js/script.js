@@ -286,19 +286,28 @@ document.addEventListener("DOMContentLoaded", async function () {
     });
 
     fetch("/submit-configuration/", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-CSRFToken": getCookie("csrftoken")
-      },
-      body: JSON.stringify(config)
-    })
-      .then((res) => {
-        if (!res.ok) throw new Error("Failed to submit");
-        return res.json();
-      })
-      .then(() => showPopup("Configuration saved successfully!"))
-      .catch(() => showPopup("Error saving configuration.", true));
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    "X-CSRFToken": getCookie("csrftoken")
+  },
+  body: JSON.stringify(config)
+})
+  .then((res) => {
+    if (!res.ok) throw new Error("Failed to submit");
+    return res.json();
+  })
+  .then((data) => {
+    if (data.status === "success") {
+      showPopup("Configuration saved successfully!");
+      if (data.next) {
+        window.location.href = data.next;
+      }
+    } else {
+      throw new Error(data.message || "Unknown error");
+    }
+  })
+  .catch(() => showPopup("Error saving configuration.", true));
   });
 
   app.appendChild(submitBtn);
