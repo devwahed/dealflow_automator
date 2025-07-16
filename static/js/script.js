@@ -38,7 +38,7 @@ document.addEventListener("DOMContentLoaded", async function () {
   ];
   const employeeOwnershipTypes = ["Private", "Private Sub", "Private Equity", "Public", "Public Sub",
     "Government", "Venture Capital", "Non-Profit", "Seed"];
-  const countries = [ "USA", "Canada", "UK", "Germany", "India", "Australia", "France", "Albania", "Andorra", "Armenia", "Austria", "Azerbaijan", "Belarus", "Belgium", "Bosnia and Herzegovina", "Bulgaria", "Croatia", "Cyprus", "Czech Republic (Czechia)", "Denmark", "Estonia", "Finland", "Georgia", "Greece", "Hungary", "Iceland", "Ireland", "Italy", "Kazakhstan (partly in EU)", "Kosovo", "Latvia", "Liechtenstein", "Lithuania", "Luxembourg", "Malta", "Moldova", "Monaco", "Montenegro", "Netherlands", "North Macedonia", "Norway", "Poland", "Portugal", "Romania", "Russia", "San Marino", "Serbia", "Slovakia", "Slovenia", "Spain", "Sweden", "Switzerland", "Turkey", "Ukraine", "United Kingdom", "Vatican City (Holy See)", "All others" ];
+  const countries = [ "USA", "Canada", "UK", "Germany", "France", "Albania", "Andorra", "Armenia", "Austria", "Azerbaijan", "Belarus", "Belgium", "Bosnia and Herzegovina", "Bulgaria", "Croatia", "Cyprus", "Czech Republic (Czechia)", "Denmark", "Estonia", "Finland", "Georgia", "Greece", "Hungary", "Iceland", "Ireland", "Italy", "Kazakhstan (partly in EU)", "Kosovo", "Latvia", "Liechtenstein", "Lithuania", "Luxembourg", "Malta", "Moldova", "Monaco", "Montenegro", "Netherlands", "North Macedonia", "Norway", "Poland", "Portugal", "Romania", "Russia", "San Marino", "Serbia", "Slovakia", "Slovenia", "Spain", "Sweden", "Switzerland", "Turkey", "Ukraine", "United Kingdom", "Vatican City (Holy See)", "All others" ];
 
   // Ownership Section
   ownershipSection = createSection("Ownership");
