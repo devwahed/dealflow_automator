@@ -36,7 +36,8 @@ document.addEventListener("DOMContentLoaded", async function () {
     "Private", "Private Sub", "Private Equity", "Public", "Public Sub",
     "Government", "Venture Capital", "Non-Profit", "Seed"
   ];
-  const employeeOwnershipTypes = ["Private", "Public"];
+  const employeeOwnershipTypes = ["Private", "Private Sub", "Private Equity", "Public", "Public Sub",
+    "Government", "Venture Capital", "Non-Profit", "Seed"];
   const countries = [ "USA", "Canada", "UK", "Germany", "India", "Australia", "France", "Albania", "Andorra", "Armenia", "Austria", "Azerbaijan", "Belarus", "Belgium", "Bosnia and Herzegovina", "Bulgaria", "Croatia", "Cyprus", "Czech Republic (Czechia)", "Denmark", "Estonia", "Finland", "Georgia", "Greece", "Hungary", "Iceland", "Ireland", "Italy", "Kazakhstan (partly in EU)", "Kosovo", "Latvia", "Liechtenstein", "Lithuania", "Luxembourg", "Malta", "Moldova", "Monaco", "Montenegro", "Netherlands", "North Macedonia", "Norway", "Poland", "Portugal", "Romania", "Russia", "San Marino", "Serbia", "Slovakia", "Slovenia", "Spain", "Sweden", "Switzerland", "Turkey", "Ukraine", "United Kingdom", "Vatican City (Holy See)", "All others" ];
 
   // Ownership Section
@@ -154,39 +155,39 @@ document.addEventListener("DOMContentLoaded", async function () {
   app.appendChild(fundraiseSection);
 
   // Total Raised Section
-  totalRaisedSection = createSection("Total Raised");
-  ["Private Equity", "Others"].forEach(group => {
-    const groupLabel = document.createElement("h3");
-    groupLabel.innerText = group;
-    groupLabel.style.fontWeight = "700";
-    groupLabel.style.fontSize = "18px";
-    groupLabel.style.marginBottom = "12px";
-    groupLabel.style.color = "#3B87AD";
-    totalRaisedSection.appendChild(groupLabel);
+totalRaisedSection = createSection("Total Raised");
+["Private Equity", "Others"].forEach(group => {
+  const groupLabel = document.createElement("h3");
+  groupLabel.innerText = group;
+  groupLabel.style.fontWeight = "700";
+  groupLabel.style.fontSize = "18px";
+  groupLabel.style.marginBottom = "12px";
+  groupLabel.style.color = "#3B87AD";
+  totalRaisedSection.appendChild(groupLabel);
 
-    [1, 2, 3].forEach(tier => {
-      const row = document.createElement("div");
-      row.className = "grid";
-      row.style.display = "grid";
-      row.style.gridTemplateColumns = "1fr 1fr 1fr";
-      row.style.gap = "12px";
-      row.style.marginBottom = "12px";
+  [1, 2, 3].forEach(tier => {
+    const row = document.createElement("div");
+    row.className = "grid";
+    row.style.display = "grid";
+    row.style.gridTemplateColumns = "1fr 1fr 1fr";
+    row.style.gap = "12px";
+    row.style.marginBottom = "12px";
 
-      const label = document.createElement("span");
-      label.innerText = group;
+    const label = document.createElement("span");
+    label.innerText = group;
 
-      const input = createInput("Max Amount", "number");
-      const key = group === "Others" ? "Others" : "private_equity";
-      input.value = savedConfig.total_raised?.[`tier_${tier}`]?.[key] ?? "";
+    const input = createInput("Max Amount", "number");
+    const key = group;  // <-- FIXED: match the actual key names in config
+    input.value = savedConfig.total_raised?.[`tier_${tier}`]?.[key] ?? "";
 
-      const tierSpan = document.createElement("span");
-      tierSpan.innerText = tier;
+    const tierSpan = document.createElement("span");
+    tierSpan.innerText = tier;
 
-      row.append(label, input, tierSpan);
-      totalRaisedSection.appendChild(row);
-    });
+    row.append(label, input, tierSpan);
+    totalRaisedSection.appendChild(row);
   });
-  app.appendChild(totalRaisedSection);
+});
+app.appendChild(totalRaisedSection);
 
   // Country
   countrySection = createSection("Country");
