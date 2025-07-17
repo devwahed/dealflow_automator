@@ -3,6 +3,7 @@ from django.http import JsonResponse, HttpResponse
 from django.shortcuts import render
 from django.views import View
 
+from llm_helpers import get_two_word_description
 from users.models import User, UserConfiguration
 
 
@@ -110,11 +111,8 @@ class UploadAndTierView(View):
             df["Post_Order"] = df["Post Tier"] * 10000 - df["Index"]
             df["Post Rank"] = df["Post_Order"].rank(method="min", ascending=True).astype(int)
             df["Tier"] = df["Post Tier"]
-
-            def get_two_words(val):
-                return " ".join(str(val).split()[:2]) if pd.notna(val) else ""
-
-            df["2 Word Description"] = df["Company Name"].apply(get_two_words)
+            df["2 Word Description"] = df.apply(
+                lambda row: get_two_word_description(row.get("Description"), row.get("Website")), axis=1)
 
             final_columns = [
                 "Post Rank", "Tier", "Company Name", "Informal Name", "Founding Year", "Country",

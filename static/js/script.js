@@ -72,44 +72,47 @@ document.addEventListener("DOMContentLoaded", async function () {
 
   // Employee Count Section
   employeeSection = createSection("Employee Count");
-  [1, 2, 3].forEach(tier => {
-    const tierLabel = document.createElement("h3");
-    tierLabel.innerText = "Tier " + tier;
-    tierLabel.style.fontWeight = "700";
-    tierLabel.style.fontSize = "18px";
-    tierLabel.style.marginBottom = "12px";
-    tierLabel.style.color = "#3B87AD";
-    employeeSection.appendChild(tierLabel);
+[1, 2, 3].forEach(tier => {
+  const tierLabel = document.createElement("h3");
+  tierLabel.innerText = "Tier " + tier;
+  tierLabel.style.fontWeight = "700";
+  tierLabel.style.fontSize = "18px";
+  tierLabel.style.marginBottom = "12px";
+  tierLabel.style.color = "#3B87AD";
+  employeeSection.appendChild(tierLabel);
 
-    employeeOwnershipTypes.forEach(ownership => {
-      const row = document.createElement("div");
-      row.className = "grid";
-      row.style.display = "grid";
-      row.style.gridTemplateColumns = "repeat(4, 1fr)";
-      row.style.gap = "12px";
-      row.style.marginBottom = "12px";
+  employeeOwnershipTypes.forEach(ownership => {
+    const row = document.createElement("div");
+    row.className = "grid";
+    row.style.display = "grid";
+    row.style.gridTemplateColumns = "1.5fr 1fr 1fr 0.5fr";
+    // Add more gap between columns 2 and 3 (between Max and Min inputs)
+    row.style.columnGap = "20px"; // Increased from 12px to 20px
+    row.style.rowGap = "12px";
+    row.style.marginBottom = "12px";
 
-      const label = document.createElement("span");
-      label.innerText = ownership;
+    const label = document.createElement("span");
+    label.innerText = ownership;
 
-      const inputMax = createInput("Max", "number");
-      const inputMin = createInput("Min", "number");
+    const inputMax = createInput("Max", "number");
+    const inputMin = createInput("Min", "number");
 
-      const prev = savedConfig.FTE_Count?.[`tier_${tier}`]?.[ownership];
-      if (prev) {
-        inputMax.value = prev.max ?? "";
-        inputMin.value = prev.min ?? "";
-      }
+    const prev = savedConfig.FTE_Count?.[`tier_${tier}`]?.[ownership];
+    if (prev) {
+      inputMax.value = prev.max ?? "";
+      inputMin.value = prev.min ?? "";
+    }
 
-      const tierSpan = document.createElement("span");
-      tierSpan.innerText = tier;
+    const tierSpan = document.createElement("span");
+    tierSpan.innerText = tier;
+    tierSpan.style.textAlign = "center";
+    tierSpan.style.minWidth = "20px";
 
-      row.append(label, inputMax, inputMin, tierSpan);
-      employeeSection.appendChild(row);
-    });
+    row.append(label, inputMax, inputMin, tierSpan);
+    employeeSection.appendChild(row);
   });
-  app.appendChild(employeeSection);
-
+});
+app.appendChild(employeeSection);
   // Founding Year
   foundingSection = createSection("Founding Year");
   [1, 2, 3].forEach(tier => {
@@ -169,7 +172,7 @@ totalRaisedSection = createSection("Total Raised");
     const row = document.createElement("div");
     row.className = "grid";
     row.style.display = "grid";
-    row.style.gridTemplateColumns = "1fr 1fr 1fr";
+    row.style.gridTemplateColumns = "1fr 1fr 1fr 0.5fr";
     row.style.gap = "12px";
     row.style.marginBottom = "12px";
 
@@ -177,11 +180,13 @@ totalRaisedSection = createSection("Total Raised");
     label.innerText = group;
 
     const input = createInput("Max Amount", "number");
-    const key = group;  // <-- FIXED: match the actual key names in config
+    const key = group;
     input.value = savedConfig.total_raised?.[`tier_${tier}`]?.[key] ?? "";
 
     const tierSpan = document.createElement("span");
     tierSpan.innerText = tier;
+    tierSpan.style.textAlign = "center";
+    tierSpan.style.minWidth = "20px";
 
     row.append(label, input, tierSpan);
     totalRaisedSection.appendChild(row);
