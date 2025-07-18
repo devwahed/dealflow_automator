@@ -21,11 +21,23 @@ class UploadAndTierView(View):
                 return JsonResponse({"status": "error", "message": "Superuser not found"}, status=404)
 
             config = UserConfiguration.objects.get(user=user).configuration_json
-
+            import io
             if filename.endswith(".csv"):
-                df = pd.read_csv(file)
+                try:
+                    file_data = file.read()
+                    df = pd.read_csv(io.BytesIO(file_data), encoding="utf-8")
+                except UnicodeDecodeError:
+                    try:
+                        df = pd.read_csv(io.BytesIO(file_data), encoding="latin1")
+                    except Exception as e:
+                        return JsonResponse({"error": f"CSV read error (latin1 fallback failed): {str(e)}"}, status=400)
+                except Exception as e:
+                    return JsonResponse({"error": f"CSV read error: {str(e)}"}, status=400)
             elif filename.endswith((".xlsx", ".xls")):
-                df = pd.read_excel(file)
+                try:
+                    df = pd.read_excel(file)
+                except Exception as e:
+                    return JsonResponse({"error": f"Excel read error: {str(e)}"}, status=400)
             else:
                 return JsonResponse({"error": "Unsupported file format. Please upload .csv or .xlsx"}, status=400)
 
