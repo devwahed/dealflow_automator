@@ -1,7 +1,7 @@
 import openai
+from openai import OpenAI
 
 from dealflow_automator.settings import OPENAI_API_KEY
-from openai import OpenAI
 
 openai.api_key = OPENAI_API_KEY
 
@@ -41,16 +41,13 @@ Then assign a **Tier from 1 to 4** using the rules below:
 - Return only the number: 1, 2, 3, or 4
 - Do not include any explanation, notes, or formatting.
 """
-
     try:
         response = client.chat.completions.create(
             model="gpt-3.5-turbo",
-            messages=[
-                {"role": "user", "content": prompt}
-            ],
+            messages=[{"role": "user", "content": prompt}],
             temperature=0.2,
         )
-        result = response["choices"][0]["message"]["content"].strip()
+        result = response.choices[0].message.content.strip()
         return int(result) if result in {"1", "2", "3", "4"} else None
     except Exception as e:
         print("OpenAI Error (Product Tier):", e)
