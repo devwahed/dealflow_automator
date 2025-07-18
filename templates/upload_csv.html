@@ -126,17 +126,22 @@
     xhr.open("POST", "{% url 'upload_csv' %}", true);
     xhr.setRequestHeader("X-CSRFToken", "{{ csrf_token }}");
 
+    xhr.upload.onprogress = function (e) {
+      if (e.lengthComputable) {
+        const percent = (e.loaded / e.total) * 100;
+        document.getElementById("progress").style.width = percent + "%";
+      }
+    };
+
     xhr.onload = function () {
       document.getElementById("loader").style.display = "none";
 
       if (xhr.status === 200) {
         const response = JSON.parse(xhr.responseText);
 
-        // Create Blob URLs for both files
         processedBlobURL = URL.createObjectURL(new Blob([response.processed_csv], { type: "text/csv" }));
         actionBlobURL = URL.createObjectURL(new Blob([response.action_csv], { type: "text/csv" }));
 
-        // Show download section
         document.getElementById("upload-container").style.display = "none";
         document.getElementById("download-section").style.display = "block";
         document.getElementById("processed-download-btn").style.display = "inline-block";
@@ -151,9 +156,9 @@
       showError();
     };
 
-    // Reset UI
-    document.getElementById("loader").style.display = "block";
+    // UI Reset
     document.getElementById("progress").style.width = "0%";
+    document.getElementById("loader").style.display = "block";
     document.getElementById("error-message").style.display = "none";
 
     xhr.send(formData);
@@ -185,6 +190,7 @@
     }
   });
 </script>
+
 
 </body>
 </html>
