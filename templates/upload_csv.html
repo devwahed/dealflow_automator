@@ -46,20 +46,21 @@
       background-color: #0056b3;
     }
 
-    .progress-bar {
-      width: 0;
-      height: 20px;
-      background-color: #28a745;
-      margin-top: 10px;
-      border-radius: 5px;
-      transition: width 0.4s;
-    }
-
     .progress-wrapper {
       width: 100%;
       background-color: #eee;
       margin-top: 20px;
       border-radius: 5px;
+      overflow: hidden;
+      height: 22px;
+    }
+
+    .progress-bar {
+      width: 0;
+      height: 100%;
+      background-color: #28a745;
+      border-radius: 5px;
+      transition: width 0.4s ease;
     }
 
     .loader {
@@ -88,6 +89,12 @@
       font-weight: bold;
       display: none;
     }
+
+    #progress-text {
+      margin-top: 5px;
+      font-size: 14px;
+      color: #333;
+    }
   </style>
 </head>
 <body>
@@ -99,6 +106,7 @@
     <div class="progress-wrapper">
       <div id="progress" class="progress-bar"></div>
     </div>
+    <div id="progress-text">0%</div>
 
     <div id="loader" class="loader"></div>
     <div id="error-message">❌ An error occurred. Please check your file and try again.</div>
@@ -107,90 +115,101 @@
   <div class="download-section" id="download-section">
     <h2>✅ File Ready</h2>
     <p>Your processed files are ready for download.</p>
-<button id="processed-download-btn" style="display: none;">Download Processed File</button>
-<button id="action-download-btn" style="display: none; margin-left: 10px;">Download Action File</button>
+    <button id="processed-download-btn" style="display: none;">Download Processed File</button>
+    <button id="action-download-btn" style="display: none; margin-left: 10px;">Download Action File</button>
   </div>
 
-<script>
-  let processedBlobURL = null;
-  let actionBlobURL = null;
+  <script>
+    let processedBlobURL = null;
+    let actionBlobURL = null;
+    let pollInterval = null;
 
-  function uploadCSV() {
-    const file = document.getElementById("csvFile").files[0];
-    if (!file) return alert("Please select a file");
+    function uploadCSV() {
+      const file = document.getElementById("csvFile").files[0];
+      if (!file) return alert("Please select a file");
 
-    const formData = new FormData();
-    formData.append("file", file);
+      const formData = new FormData();
+      formData.append("file", file);
 
-    const xhr = new XMLHttpRequest();
-    xhr.open("POST", "{% url 'upload_csv' %}", true);
-    xhr.setRequestHeader("X-CSRFToken", "{{ csrf_token }}");
+      const xhr = new XMLHttpRequest();
+      xhr.open("POST", "{% url 'upload_csv' %}", true);
+      xhr.setRequestHeader("X-CSRFToken", "{{ csrf_token }}");
 
-    xhr.upload.onprogress = function (e) {
-      if (e.lengthComputable) {
-        const percent = (e.loaded / e.total) * 100;
-        document.getElementById("progress").style.width = percent + "%";
-      }
-    };
+      xhr.onload = function () {
+        document.getElementById("loader").style.display = "none";
+        clearInterval(pollInterval);
 
-    xhr.onload = function () {
-      document.getElementById("loader").style.display = "none";
+        if (xhr.status === 200) {
+          const response = JSON.parse(xhr.responseText);
 
-      if (xhr.status === 200) {
-        const response = JSON.parse(xhr.responseText);
+          processedBlobURL = URL.createObjectURL(new Blob([response.processed_csv], { type: "text/csv" }));
+          actionBlobURL = URL.createObjectURL(new Blob([response.action_csv], { type: "text/csv" }));
 
-        processedBlobURL = URL.createObjectURL(new Blob([response.processed_csv], { type: "text/csv" }));
-        actionBlobURL = URL.createObjectURL(new Blob([response.action_csv], { type: "text/csv" }));
+          document.getElementById("upload-container").style.display = "none";
+          document.getElementById("download-section").style.display = "block";
+          document.getElementById("processed-download-btn").style.display = "inline-block";
+          document.getElementById("action-download-btn").style.display = "inline-block";
+        } else {
+          showError();
+        }
+      };
 
-        document.getElementById("upload-container").style.display = "none";
-        document.getElementById("download-section").style.display = "block";
-        document.getElementById("processed-download-btn").style.display = "inline-block";
-        document.getElementById("action-download-btn").style.display = "inline-block";
-      } else {
+      xhr.onerror = function () {
+        document.getElementById("loader").style.display = "none";
+        clearInterval(pollInterval);
         showError();
+      };
+
+      // UI Reset
+      document.getElementById("progress").style.width = "0%";
+      document.getElementById("progress-text").textContent = "0%";
+      document.getElementById("loader").style.display = "block";
+      document.getElementById("error-message").style.display = "none";
+
+      // Start polling for backend progress
+      pollInterval = setInterval(pollProgress, 1000);
+
+      xhr.send(formData);
+    }
+
+    function pollProgress() {
+      fetch("{% url 'check_progress' %}")
+        .then(response => response.json())
+        .then(data => {
+          const percent = data.percent || 0;
+          document.getElementById("progress").style.width = percent + "%";
+          document.getElementById("progress-text").textContent = percent + "%";
+        })
+        .catch(err => {
+          console.error("Polling failed:", err);
+        });
+    }
+
+    function showError() {
+      document.getElementById("error-message").style.display = "block";
+    }
+
+    document.getElementById("processed-download-btn").addEventListener("click", function () {
+      if (processedBlobURL) {
+        const a = document.createElement("a");
+        a.href = processedBlobURL;
+        a.download = "processed.csv";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
       }
-    };
+    });
 
-    xhr.onerror = function () {
-      document.getElementById("loader").style.display = "none";
-      showError();
-    };
-
-    // UI Reset
-    document.getElementById("progress").style.width = "0%";
-    document.getElementById("loader").style.display = "block";
-    document.getElementById("error-message").style.display = "none";
-
-    xhr.send(formData);
-  }
-
-  function showError() {
-    document.getElementById("error-message").style.display = "block";
-  }
-
-  document.getElementById("processed-download-btn").addEventListener("click", function () {
-    if (processedBlobURL) {
-      const a = document.createElement("a");
-      a.href = processedBlobURL;
-      a.download = "processed.csv";
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-    }
-  });
-
-  document.getElementById("action-download-btn").addEventListener("click", function () {
-    if (actionBlobURL) {
-      const a = document.createElement("a");
-      a.href = actionBlobURL;
-      a.download = "action.csv";
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-    }
-  });
-</script>
-
-
+    document.getElementById("action-download-btn").addEventListener("click", function () {
+      if (actionBlobURL) {
+        const a = document.createElement("a");
+        a.href = actionBlobURL;
+        a.download = "action.csv";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      }
+    });
+  </script>
 </body>
 </html>
