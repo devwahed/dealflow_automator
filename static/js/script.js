@@ -1,3 +1,9 @@
+/**
+ * Utility function to create a styled section/card with a header.
+ * @param {string} title - The title of the section.
+ * @returns {HTMLDivElement} - The section element.
+ */
+
 function createSection(title) {
   const div = document.createElement("div");
   div.className = "card";
@@ -8,6 +14,12 @@ function createSection(title) {
   return div;
 }
 
+/**
+ * Utility function to create a styled input element.
+ * @param {string} placeholder - Placeholder text for the input.
+ * @param {string} type - Type of input (default: text).
+ * @returns {HTMLInputElement}
+ */
 function createInput(placeholder = "", type = "text") {
   const input = document.createElement("input");
   input.className = "input";
@@ -16,12 +28,14 @@ function createInput(placeholder = "", type = "text") {
   return input;
 }
 
+// Section containers
 let ownershipSection, employeeSection, foundingSection, fundraiseSection, totalRaisedSection, countrySection;
 
 document.addEventListener("DOMContentLoaded", async function () {
   const app = document.getElementById("app");
   let savedConfig = {};
 
+  // Fetch saved configuration from the backend
   try {
     const res = await fetch("/get-configuration/");
     const data = await res.json();
@@ -32,6 +46,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     console.error("Failed to load saved config:", e);
   }
 
+  // Constants used in various selectors
   const ownershipTypes = [
     "Private", "Private Sub", "Private Equity", "Public", "Public Sub",
     "Government", "Venture Capital", "Non-Profit", "Seed"
@@ -291,7 +306,8 @@ app.appendChild(totalRaisedSection);
       }
     });
 
-    fetch("/submit-configuration/", {
+  // Send configuration to backend
+  fetch("/submit-configuration/", {
   method: "POST",
   headers: {
     "Content-Type": "application/json",
@@ -318,6 +334,7 @@ app.appendChild(totalRaisedSection);
 
   app.appendChild(submitBtn);
 
+  // ---------------- Utility: Get CSRF Token from Cookies ----------------
   function getCookie(name) {
     let cookieValue = null;
     if (document.cookie && document.cookie !== "") {

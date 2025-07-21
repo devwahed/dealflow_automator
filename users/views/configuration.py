@@ -9,11 +9,26 @@ from users.models.user import User
 
 
 def configuration(request):
+    """
+    Render the configuration page.
+
+    Returns:
+        HttpResponse: Rendered HTML template for the configuration.
+    """
     return render(request, template_name='index.html')
 
 
 @csrf_exempt
 def submit_configuration(request):
+    """
+    Handle the POST request to save user configuration.
+
+    Expects a JSON payload in the request body.
+    Updates or creates a UserConfiguration object for the superuser.
+
+    Returns:
+        JsonResponse: Status of the operation (success or error).
+    """
     if request.method == "POST":
         try:
             data = json.loads(request.body)
@@ -33,6 +48,13 @@ def submit_configuration(request):
 
 
 def get_configuration(request):
+    """
+    Retrieve the saved user configuration for the superuser.
+
+    Returns:
+        JsonResponse: Contains the configuration data if available,
+                      or an empty dictionary if not found.
+    """
     superuser = User.objects.filter(is_superuser=True).first()
     if not superuser:
         return JsonResponse({"status": "error", "message": "Superuser not found"}, status=404)
