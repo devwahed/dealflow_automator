@@ -3,8 +3,9 @@ from django.conf.urls.static import static
 from django.urls import path
 
 from users.views import configuration
+from users.views.check_progress import check_progress
 from users.views.configuration import submit_configuration, get_configuration
-from users.views.upload_csv import UploadAndTierView, check_progress
+from users.views.upload_csv import UploadAndTierView
 
 urlpatterns = [
     path('', configuration, name='create_user_configuration'),

@@ -1,81 +1,59 @@
 import io
-import json
-import os
 
 import pandas as pd
 from django.http import JsonResponse
 from django.shortcuts import render
 from django.views import View
 
-from llm_helpers import get_product_tier, get_two_word_description
 from users.models import User
 from users.models import UserConfiguration
-
-# === Progress Tracking Helpers ===
-PROGRESS_DIR = "/tmp/progress"  # Adjust as needed
-os.makedirs(PROGRESS_DIR, exist_ok=True)
+from users.utilities import generate_descriptions_and_tiers_with_progress, clear_progress
 
 
-def get_progress_file_path(user_id):
-    return os.path.join(PROGRESS_DIR, f"progress_{user_id}.json")
-
-
-def save_progress(user_id, current, total):
-    percent = round((current / total) * 100, 2)
-    with open(get_progress_file_path(user_id), "w") as f:
-        json.dump({"current": current, "total": total, "percent": percent}, f)
-
-
-def clear_progress(user_id):
-    path = get_progress_file_path(user_id)
-    if os.path.exists(path):
-        os.remove(path)
-
-
-# === Combined Description & Tier Progress ===
-def generate_descriptions_and_tiers_with_progress(df, user_id):
-    total_rows = len(df)
-    total_steps = total_rows * 2  # One for product_tier, one for description
-    current = 0
-
-    product_tiers = []
-    descriptions = []
-
-    for _, row in df.iterrows():
-        # Product Tier
-        try:
-            product_tier = get_product_tier(row.get("Description", ""), row.get("Website", ""))
-        except:
-            product_tier = 0
-        product_tiers.append(product_tier)
-        current += 1
-        save_progress(user_id, current, total_steps)
-
-        # Description
-        try:
-            desc = get_two_word_description(row.get("Description", ""), row.get("Website", ""))
-        except:
-            desc = ""
-        descriptions.append(desc)
-        current += 1
-        save_progress(user_id, current, total_steps)
-
-    return product_tiers, descriptions
-
-
-# === Main View ===
 class UploadAndTierView(View):
+    """
+    Handles the uploading of a CSV or Excel file, processes it using tiering logic,
+    generates descriptions and product tiers using GPT, and returns two CSV outputs.
+
+    - GET: Renders the upload form.
+    - POST: Processes the uploaded file and applies tier logic + LLM-based enhancements.
+    """
+
     def get(self, request):
+        """
+        Renders the upload page with a file input form.
+
+        Returns:
+            HttpResponse: Renders the 'upload_csv.html' template.
+        """
         return render(request, "upload_csv.html")
 
     def post(self, request):
+        """
+        Processes an uploaded CSV or Excel file by:
+        - Reading the file and converting to a DataFrame.
+        - Applying tiering logic (country, ownership, funding, etc.) based on config.
+        - Generating product tiers and short descriptions via GPT.
+        - Returning two processed CSVs: one clean, one for UI display.
+
+        Args:
+            request (HttpRequest): The incoming POST request containing the uploaded file.
+
+        Returns:
+            JsonResponse: Contains two CSV outputs as strings:
+                - 'processed_csv': Cleaned and finalized data.
+                - 'action_csv': Intermediate data used for UI sorting/filtering.
+
+        Raises:
+            JsonResponse: With an error message if something fails during processing.
+        """
         try:
             file = request.FILES["file"]
             filename = file.name.lower()
 
             user = User.objects.filter(is_superuser=True).first()
             if not user:
-                return JsonResponse({"status": "error", "message": "Superuser not found"}, status=404)
+                return JsonResponse({"status": "error", "message": "User not found"}, status=404)
 
             config = UserConfiguration.objects.get(user=user).configuration_json
 
@@ -204,13 +182,3 @@ class UploadAndTierView(View):
 
         except Exception as e:
             return JsonResponse({"error": str(e)}, status=500)
-
-
-# === Progress Polling Endpoint ===
-def check_progress(request):
-    user = User.objects.get()
-    path = get_progress_file_path(user.id)
-    if not os.path.exists(path):
-        return JsonResponse({"current": 0, "total": 0, "percent": 0})
-    with open(path, "r") as f:
-        return JsonResponse(json.load(f))
