@@ -35,6 +35,14 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = "dealflow_automator.urls"
 
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.db.DatabaseCache',
+        'LOCATION': 'django_cache_table',
+    }
+}
+
+
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
