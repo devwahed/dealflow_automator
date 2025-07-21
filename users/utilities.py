@@ -1,54 +1,38 @@
-import json
-import os
-
 import pandas as pd
+from django.core.cache import cache
 
 from users.llm_helpers import get_product_tier, get_two_word_description
-
-PROGRESS_DIR = "/tmp/progress"
-os.makedirs(PROGRESS_DIR, exist_ok=True)
-
-
-def get_progress_file_path(user_id):
-    """
-    Returns the full path to the progress file for a given user.
-
-    Args:
-        user_id (int): The ID of the user.
-
-    Returns:
-        str: Path to the progress JSON file.
-    """
-    return os.path.join(PROGRESS_DIR, f"progress_{user_id}.json")
 
 
 def save_progress(user_id, current, total):
     """
-    Saves the current progress of a task for a user.
+    Saves the current progress of a task for a user in Django's cache system.
 
     Args:
         user_id (int): The ID of the user.
         current (int): The current step completed.
         total (int): The total number of steps.
 
-    Writes:
-        A JSON file with keys: 'current', 'total', and 'percent'.
+    Cache:
+        Stores a dictionary with keys: 'current', 'total', and 'percent'.
+        Cached under the key 'progress_<user_id>'.
+        Expires in 1 hour (3600 seconds).
     """
-    percent = round((current / total) * 100, 2)
-    with open(get_progress_file_path(user_id), "w") as f:
-        json.dump({"current": current, "total": total, "percent": percent}, f)
+    percent = round((current / total) * 100, 2) if total else 0
+    cache.set(f"progress_{user_id}", {"current": current, "total": total, "percent": percent}, timeout=3600)
 
 
 def clear_progress(user_id):
     """
-    Deletes the progress file for a given user if it exists.
+    Clears the progress data for a user from Django's cache.
 
     Args:
-       user_id (int): The ID of the user.
+        user_id (int): The ID of the user.
+
+    Cache:
+        Deletes the cached value under 'progress_<user_id>'.
     """
-    path = get_progress_file_path(user_id)
-    if os.path.exists(path):
-        os.remove(path)
+    cache.delete(f"progress_{user_id}")
 
 
 def generate_descriptions_and_tiers_with_progress(df, user_id):

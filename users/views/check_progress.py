@@ -1,17 +1,14 @@
-import json
-import os
-
+from django.core.cache import cache
 from django.http import JsonResponse
 
 from users.models import User
-from users.utilities import get_progress_file_path
 
 
 def check_progress(request):
     """
-    Returns the current progress of file processing for the superuser.
+    Returns the current progress of file processing for the superuser from Django's cache.
 
-    This function checks the JSON progress file and reports:
+    This function retrieves:
     - current: How many steps have been completed.
     - total: Total steps to complete.
     - percent: Percent complete.
@@ -20,13 +17,14 @@ def check_progress(request):
         request (HttpRequest): The incoming request (can be GET or AJAX).
 
     Returns:
-        JsonResponse: A dictionary with progress values or a 0% fallback if no file exists.
+        JsonResponse: A dictionary with progress values or a 0% fallback if no cache entry exists.
     """
     user = User.objects.filter(is_superuser=True).first()
     if not user:
         return JsonResponse({"status": "error", "message": "User not found"}, status=404)
-    path = get_progress_file_path(user.id)
-    if not os.path.exists(path):
+
+    progress = cache.get(f"progress_{user.id}")
+    if not progress:
         return JsonResponse({"current": 0, "total": 0, "percent": 0})
-    with open(path, "r") as f:
-        return JsonResponse(json.load(f))
+
+    return JsonResponse(progress)
