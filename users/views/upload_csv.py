@@ -1,4 +1,5 @@
 import io
+import base64
 
 import pandas as pd
 from django.http import JsonResponse
@@ -60,7 +61,7 @@ class UploadAndTierView(View):
 
             config = UserConfiguration.objects.get(user=user).configuration_json
 
-            # Read the file
+            # Read file
             if filename.endswith(".csv"):
                 try:
                     file_data = file.read()
@@ -132,55 +133,120 @@ class UploadAndTierView(View):
             df["raised_tier"] = df.apply(get_total_raised_tier, axis=1)
             df["fte_tier"] = df.apply(get_fte_tier, axis=1)
 
-            df["Pre-Product Tier"] = df[[
-                "country_tier", "ownership_tier", "founding_tier",
-                "fundraise_tier", "raised_tier", "fte_tier"
-            ]].max(axis=1)
+            df["Pre-Product Tier"] = df[
+                ["country_tier", "ownership_tier", "founding_tier", "fundraise_tier", "raised_tier", "fte_tier"]].max(
+                axis=1)
 
-            # Run GPT-based functions with progress tracking
+            # GPT-based logic
             product_tiers, descriptions = generate_descriptions_and_tiers_with_progress(df, user.id)
-
             df["Product Tier - CHAT GPT"] = pd.Series(pd.to_numeric(product_tiers, errors="coerce")).fillna(0)
             df["2 Word Description"] = descriptions
 
-            df["Order"] = df["Pre-Product Tier"].rank(method="min", ascending=True).astype(int)
             df["Post Tier"] = df[["Pre-Product Tier", "Product Tier - CHAT GPT"]].max(axis=1)
             df["Index"] = df.index + 1
             df["Post_Order"] = df["Post Tier"] * 10000 - df["Index"]
             df["Post Rank"] = df["Post_Order"].rank(method="min", ascending=True).astype(int)
             df["Tier"] = df["Post Tier"]
 
+            # Remove Tier 4 companies
+            df = df[df["Post Tier"] != 4]
+
+            # Sort by Tier ASC and Employee Count DESC
+            df = df.sort_values(by=["Post Tier", "Employee Count"], ascending=[True, False])
+
+            # === PROCESSED FILE ===
             final_columns = [
                 "Post Rank", "Tier", "Company Name", "Informal Name", "Founding Year", "Country",
                 "Website", "Description", "Employee Count", "Ownership", "Total Raised",
                 "Date of Most Recent Investment", "Executive Title", "Executive First Name",
                 "Executive Last Name", "Executive Email", "Investors", "2 Word Description"
             ]
+
             processed_df = df[[col for col in final_columns if col in df.columns]].copy()
             processed_df.rename(columns={
                 "Employee Count": "Count",
                 "Company Name": "Name"
             }, inplace=True)
 
+            # === ACTION FILE ===
             df["2 Word Description - CHAT GPT"] = df["2 Word Description"]
             df["Include"] = ""
+
             action_columns = [
-                "Pre-Product Tier", "Order", "Post Tier", "Post_Order", "Post Rank", "Index",
+                "Pre-Product Tier", "Post Tier", "Post_Order", "Post Rank", "Index",
                 "Include", "Company Name", "Website", "Description", "Employee Count",
                 "Product Tier - CHAT GPT", "2 Word Description - CHAT GPT"
             ]
+
             action_df = df[[col for col in action_columns if col in df.columns]].copy()
 
-            processed_csv = io.StringIO()
-            action_csv = io.StringIO()
-            processed_df.to_csv(processed_csv, index=False)
-            action_df.to_csv(action_csv, index=False)
+            # Write Excel files in-memory
+            processed_output = io.BytesIO()
+            action_output = io.BytesIO()
+
+            # === Processed File ===
+            with pd.ExcelWriter(processed_output, engine="xlsxwriter") as writer:
+                processed_df.to_excel(writer, index=False, sheet_name="Processed")
+
+                workbook = writer.book
+                worksheet = writer.sheets["Processed"]
+
+                # Define header and wrap formats
+                header_format = workbook.add_format({
+                    "bold": True,
+                    "bg_color": "#3B87AD",
+                    "font_color": "white",
+                    "text_wrap": True,
+                    "align": "center",
+                    "valign": "center"
+                })
+
+                wrap_format = workbook.add_format({
+                    "text_wrap": True,
+                    "valign": "top"
+                })
+
+                # Apply header format
+                for col_num, value in enumerate(processed_df.columns.values):
+                    worksheet.write(0, col_num, value, header_format)
+
+                # Apply wrap format to entire data range
+                worksheet.set_column(0, len(processed_df.columns) - 1, 20, wrap_format)
+
+            # === Action File ===
+            with pd.ExcelWriter(action_output, engine="xlsxwriter") as writer:
+                action_df.to_excel(writer, index=False, sheet_name="Action")
+
+                workbook_a = writer.book
+                worksheet_a = writer.sheets["Action"]
+
+                header_format_a = workbook_a.add_format({
+                    "bold": True,
+                    "bg_color": "#3B87AD",
+                    "font_color": "white",
+                    "text_wrap": True,
+                    "align": "center",
+                    "valign": "center"
+                })
+
+                wrap_format_a = workbook_a.add_format({
+                    "text_wrap": True,
+                    "valign": "top"
+                })
+
+                for col_num, value in enumerate(action_df.columns.values):
+                    worksheet_a.write(0, col_num, value, header_format_a)
+
+                worksheet_a.set_column(0, len(action_df.columns) - 1, 20, wrap_format_a)
+
+            processed_output.seek(0)
+            action_output.seek(0)
 
             clear_progress(user.id)
 
             return JsonResponse({
-                "processed_csv": processed_csv.getvalue(),
-                "action_csv": action_csv.getvalue(),
+                "processed_excel": base64.b64encode(processed_output.getvalue()).decode(),
+                "action_excel": base64.b64encode(action_output.getvalue()).decode(),
             })
 
         except Exception as e:
