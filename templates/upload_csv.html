@@ -100,7 +100,7 @@
 <body>
   <div class="upload-container" id="upload-container">
     <h2>📤 Upload Your CSV or Excel File</h2>
-    <input type="file" id="csvFile" accept=".csv,.xlsx" />
+    <input type="file" id="csvFile" accept=".csv,.xlsx,.xls" />
     <button onclick="uploadCSV()">Upload & Process</button>
 
     <div class="progress-wrapper">
@@ -186,17 +186,16 @@
     }
 
     function getCSRFToken() {
-  const name = "csrftoken";
-  const cookies = document.cookie.split(';');
-  for (let cookie of cookies) {
-    cookie = cookie.trim();
-    if (cookie.startsWith(name + '=')) {
-      return decodeURIComponent(cookie.substring(name.length + 1));
+      const name = "csrftoken";
+      const cookies = document.cookie.split(';');
+      for (let cookie of cookies) {
+        cookie = cookie.trim();
+        if (cookie.startsWith(name + '=')) {
+          return decodeURIComponent(cookie.substring(name.length + 1));
+        }
+      }
+      return null;
     }
-  }
-  return null;
-}
-
 
     function showError() {
       document.getElementById("error-message").style.display = "block";

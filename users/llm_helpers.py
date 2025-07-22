@@ -2,13 +2,12 @@ import openai
 from openai import OpenAI
 
 from dealflow_automator.settings import OPENAI_API_KEY
-import timeout_decorator
 
 openai.api_key = OPENAI_API_KEY
 
 client = OpenAI()
 
-@timeout_decorator.timeout(300)
+
 def get_product_tier(description, website):
     prompt = f"""
 You are an analyst at a private equity firm evaluating companies based on their business models.
@@ -54,7 +53,7 @@ Then assign a **Tier from 1 to 4** using the rules below:
         print("OpenAI Error (Product Tier):", e)
         return None
 
-@timeout_decorator.timeout(300)
+
 def get_two_word_description(description, website):
     prompt = f"""
 For each company, use the following values:
