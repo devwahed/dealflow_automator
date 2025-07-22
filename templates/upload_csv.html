@@ -133,7 +133,7 @@
 
       const xhr = new XMLHttpRequest();
       xhr.open("POST", "{% url 'upload_csv' %}", true);
-      xhr.setRequestHeader("X-CSRFToken", "{{ csrf_token }}");
+      xhr.setRequestHeader("X-CSRFToken", getCSRFToken());
 
       xhr.onload = function () {
         document.getElementById("loader").style.display = "none";
@@ -184,6 +184,19 @@
           console.error("Polling failed:", err);
         });
     }
+
+    function getCSRFToken() {
+  const name = "csrftoken";
+  const cookies = document.cookie.split(';');
+  for (let cookie of cookies) {
+    cookie = cookie.trim();
+    if (cookie.startsWith(name + '=')) {
+      return decodeURIComponent(cookie.substring(name.length + 1));
+    }
+  }
+  return null;
+}
+
 
     function showError() {
       document.getElementById("error-message").style.display = "block";
