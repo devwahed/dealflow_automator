@@ -1,4 +1,5 @@
 import io
+import timeout_decorator
 
 import pandas as pd
 from django.http import JsonResponse
@@ -31,6 +32,7 @@ class UploadAndTierView(View):
         """
         return render(request, "upload_csv.html")
 
+    @timeout_decorator.timeout(3000)
     def post(self, request):
         """
         Processes an uploaded CSV or Excel file by:
