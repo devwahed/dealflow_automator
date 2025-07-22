@@ -1,19 +1,15 @@
 import io
-import timeout_decorator
 
 import pandas as pd
 from django.http import JsonResponse
 from django.shortcuts import render
-from django.utils.decorators import method_decorator
 from django.views import View
-from django.views.decorators.csrf import csrf_exempt
 
 from users.models import User
 from users.models import UserConfiguration
 from users.utilities import generate_descriptions_and_tiers_with_progress, clear_progress
 
 
-@method_decorator(csrf_exempt, name='dispatch')
 class UploadAndTierView(View):
     """
     Handles the uploading of a CSV or Excel file, processes it using tiering logic,
@@ -32,7 +28,6 @@ class UploadAndTierView(View):
         """
         return render(request, "upload_csv.html")
 
-    @timeout_decorator.timeout(3000)
     def post(self, request):
         """
         Processes an uploaded CSV or Excel file by:
