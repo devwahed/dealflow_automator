@@ -51,6 +51,13 @@ TEMPLATES = [
     },
 ]
 
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.db.DatabaseCache',
+        'LOCATION': 'django_cache_table',
+    }
+}
+
 WSGI_APPLICATION = "dealflow_automator.wsgi.application"
 
 DATABASES = {
