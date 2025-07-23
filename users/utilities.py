@@ -19,7 +19,7 @@ def save_progress(user_id, current, total):
         Expires in 1 hour (3600 seconds).
     """
     percent = round((current / total) * 100, 2) if total else 0
-    cache.set(f"progress_{user_id}", {"current": current, "total": total, "percent": percent}, timeout=3600)
+    cache.set(f"{user_id}_progress", {"current": current, "total": total, "percent": percent}, timeout=3600)
 
 
 def clear_progress(user_id):
@@ -55,7 +55,7 @@ def generate_descriptions_and_tiers_with_progress(df, user_id):
             - descriptions (list[str]): List of generated 2–3 word business descriptions.
     """
     total_rows = len(df)
-    total_steps = total_rows * 2  # One for product_tier, one for description
+    total_steps = total_rows * 2
     current = 0
 
     product_tiers = []
