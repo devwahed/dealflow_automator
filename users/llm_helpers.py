@@ -1,3 +1,5 @@
+import json
+
 import openai
 from openai import OpenAI
 
@@ -8,38 +10,39 @@ openai.api_key = OPENAI_API_KEY
 client = OpenAI()
 
 
-def get_product_tier(description, website):
+def get_bulk_product_tiers_and_descriptions(companies):
+    """
+    companies: List of dicts, each with 'description' and 'website'
+    Returns:
+        - List of product tiers (ints or None)
+        - List of 2-word descriptions (str)
+    """
     prompt = f"""
-You are an analyst at a private equity firm evaluating companies based on their business models.
-For each company, use the following fields:
-- Website: {website}
-- Description: {description}
-Your task:
-1. Use the provided Description and Website fields to understand the business model.
-2. Do not fabricate information. You are not able to visit or browse the website independently.
-3. Confirm if the Website string supports or aligns with the Description.
-4. Determine whether the business offers software, services, hardware, or a combination.
+You are an analyst evaluating companies based on the following business descriptions and websites.
 
-Then assign a **Tier from 1 to 4** using the rules below:
+For each company:
+- Use the description and website to determine the business model.
+- Return a tier (1-4) based on the rules below.
+- Generate a short, lowercase 2–3 word description of the business.
 
-### Tiering Criteria:
-- Return 1 if the company sells:
-  - Vertical B2B software
-  - Industrial B2B software
-  - B2B software + hardware
-  - B2B software + services
-- Return 2 if the company sells:
-  - Horizontal B2B software
-- Return 4 if the company is:
-  - A custom software development service
-  - A system integrator
-  - A non-tech or non-recurring services business
-  - A B2C software company
-- Return 3 only if it is truly ambiguous between Tier 2 and Tier 4.
+### Tiering Rules:
+- Tier 1: Vertical/Industrial B2B software, B2B software + hardware/services.
+- Tier 2: Horizontal B2B software.
+- Tier 4: Custom dev shop, system integrator, B2C, non-tech services.
+- Tier 3: Only if ambiguous between Tier 2 and Tier 4.
 
-### Output Instructions:
-- Return only the number: 1, 2, 3, or 4
-- Do not include any explanation, notes, or formatting.
+### Output format:
+Return a JSON list of objects like this:
+[
+  {{
+    "tier": 1,
+    "description": "health data analytics"
+  }},
+  ...
+]
+
+### Companies:
+{json.dumps(companies[:15], indent=2)}
 """
     try:
         response = client.chat.completions.create(
@@ -47,39 +50,18 @@ Then assign a **Tier from 1 to 4** using the rules below:
             messages=[{"role": "user", "content": prompt}],
             temperature=0.2,
         )
-        result = response.choices[0].message.content.strip()
-        return int(result) if result in {"1", "2", "3", "4"} else None
+        content = response.choices[0].message.content.strip()
+
+        # Try to parse the JSON response
+        try:
+            parsed = json.loads(content)
+            tiers = [item.get("tier") for item in parsed]
+            descriptions = [item.get("description", "") for item in parsed]
+            return tiers, descriptions
+        except json.JSONDecodeError:
+            print("Error decoding GPT response as JSON:", content)
+            return [None] * len(companies), [""] * len(companies)
+
     except Exception as e:
-        print("OpenAI Error (Product Tier):", e)
-        return None
-
-
-def get_two_word_description(description, website):
-    prompt = f"""
-For each company, use the following values:
-- Website: {website}
-- Description: {description}
-
-1. Look at the description and website to figure out what the company does.
-2. Return a short, specific 2–3 word description of the business in all lowercase with no punctuation.
-3. Your response must fit into the sentence:
-   "We've developed a thesis around [2-word description] and we've heard good things about your company..."
-
-Only return the 2–3 word description. Do not include any other text or formatting.
-
-For example, the output for https://lactanet.ca/ would be "herd management solutions"
-"""
-
-    try:
-        response = client.chat.completions.create(
-            model="gpt-3.5-turbo",
-            messages=[
-                {"role": "user", "content": prompt}
-            ],
-            temperature=0.2,
-        )
-        result = response.choices[0].message.content.strip().lower()
-        return result
-    except Exception as e:
-        print("OpenAI Error (2 Word Description):", e)
-        return ""
+        print("OpenAI Error (bulk):", e)
+        return [None] * len(companies), [""] * len(companies)

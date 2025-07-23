@@ -1,7 +1,7 @@
 import pandas as pd
 from django.core.cache import cache
 
-from users.llm_helpers import get_product_tier, get_two_word_description
+from users.llm_helpers import get_bulk_product_tiers_and_descriptions
 
 
 def save_progress(user_id, current, total):
@@ -19,6 +19,7 @@ def save_progress(user_id, current, total):
         Expires in 1 hour (3600 seconds).
     """
     percent = round((current / total) * 100, 2) if total else 0
+    print(f"Progress saved: {current}/{total} ({percent}%)")
     cache.set(f"progress_{user_id}", {"current": current, "total": total, "percent": percent}, timeout=3600)
 
 
@@ -35,49 +36,40 @@ def clear_progress(user_id):
     cache.delete(f"progress_{user_id}")
 
 
-def generate_descriptions_and_tiers_with_progress(df, user_id):
+def generate_descriptions_and_tiers_with_progress(df, user_id, batch_size=10):
     """
-    Processes each row in the given DataFrame to generate product tiers and two-word descriptions
-    using LLM-based helper functions. Tracks and saves progress for each step.
-
-    For each row, this function:
-    - Calls `get_product_tier()` to determine a tier based on the description and website.
-    - Calls `get_two_word_description()` to generate a brief business description.
-    - Saves progress after each step to allow real-time progress tracking.
-
-    Args:
-        df (pd.DataFrame): The input DataFrame containing company data.
-        user_id (int): ID of the user for whom progress is being tracked.
-
-    Returns:
-        tuple: A tuple of two lists:
-            - product_tiers (list[int]): List of generated product tier values (1–4 or 0 on failure).
-            - descriptions (list[str]): List of generated 2–3 word business descriptions.
+    Uses bulk GPT calls for better speed while tracking progress after each row.
     """
     total_rows = len(df)
-    total_steps = total_rows * 2  # One for product_tier, one for description
+    total_steps = total_rows * 2  # One step for tier, one for description
     current = 0
 
     product_tiers = []
     descriptions = []
 
-    for _, row in df.iterrows():
-        # Product Tier
-        try:
-            product_tier = get_product_tier(row.get("Description", ""), row.get("Website", ""))
-        except:
-            product_tier = 0
-        product_tiers.append(product_tier)
-        current += 1
-        save_progress(user_id, current, total_steps)
+    companies = [
+        {
+            "description": str(row.get("Description", "")),
+            "website": str(row.get("Website", ""))
+        }
+        for _, row in df.iterrows()
+    ]
 
-        # Description
-        try:
-            desc = get_two_word_description(row.get("Description", ""), row.get("Website", ""))
-        except:
-            desc = ""
-        descriptions.append(desc)
-        current += 1
-        save_progress(user_id, current, total_steps)
+    for i in range(0, len(companies), batch_size):
+        batch = companies[i:i + batch_size]
+
+        # Get results from GPT
+        batch_tiers, batch_descs = get_bulk_product_tiers_and_descriptions(batch)
+
+        # Add to final result
+        for tier, desc in zip(batch_tiers, batch_descs):
+            product_tiers.append(tier if tier in [1, 2, 3, 4] else 0)
+            descriptions.append(desc)
+
+            # Save progress twice: one for tier, one for description
+            current += 1
+            save_progress(user_id, current, total_steps)
+            current += 1
+            save_progress(user_id, current, total_steps)
 
     return product_tiers, descriptions
