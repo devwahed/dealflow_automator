@@ -61,6 +61,7 @@ def process_uploaded_file(self, file_data_b64, filename, user_id):
         df["Founding Year"] = pd.to_numeric(df.get("Founding Year"), errors="coerce")
         df["Total Raised"] = pd.to_numeric(df.get("Total Raised"), errors="coerce")
         df["Employee Count"] = pd.to_numeric(df.get("Employee Count"), errors="coerce")
+        df["Index"] = df.index + 1  # needed for merge after GPT
 
         # Tiers
         def get_founding_tier(year):
@@ -123,14 +124,28 @@ def process_uploaded_file(self, file_data_b64, filename, user_id):
             "fundraise_tier", "raised_tier", "fte_tier"
         ]].max(axis=1)
 
-        # GPT logic with progress tracking
-        product_tiers, descriptions = generate_descriptions_and_tiers_with_progress(df, user.id)
+        # Filter rows needing GPT
+        df_gpt = df[df["Pre-Product Tier"] != 4].copy()
 
-        df["Product Tier - CHAT GPT"] = pd.Series(pd.to_numeric(product_tiers, errors="coerce")).fillna(0)
-        df["2 Word Description"] = descriptions
+        # Save progress for GPT step (2 steps per row)
+        total_gpt_rows = len(df_gpt)
+        save_progress(user.id, 0, total_gpt_rows * 2)
 
+        # Run GPT task
+        product_tiers, descriptions = generate_descriptions_and_tiers_with_progress(df_gpt, user.id)
+
+        df_gpt["Product Tier - CHAT GPT"] = pd.Series(product_tiers).apply(pd.to_numeric, errors="coerce").fillna(0)
+        df_gpt["2 Word Description"] = descriptions
+
+        # Merge GPT results back into full df
+        df = df.merge(
+            df_gpt[["Index", "Product Tier - CHAT GPT", "2 Word Description"]],
+            on="Index", how="left"
+        )
+
+        # Final post-tier and ordering
+        df["Product Tier - CHAT GPT"] = df["Product Tier - CHAT GPT"].fillna(0)
         df["Post Tier"] = df[["Pre-Product Tier", "Product Tier - CHAT GPT"]].max(axis=1)
-        df["Index"] = df.index + 1
         df["Post_Order"] = df["Post Tier"] * 10000 - df["Index"]
         df["Post Rank"] = df["Post_Order"].rank(method="min", ascending=True).astype(int)
         df["Tier"] = df["Post Tier"]
@@ -189,8 +204,6 @@ def process_uploaded_file(self, file_data_b64, filename, user_id):
 
         processed_output.seek(0)
         action_output.seek(0)
-
-        # Mark progress 100% only at the very end
         save_progress(user.id, 100, 100)
 
         return {
