@@ -116,7 +116,6 @@
     <h2>✅ File Ready</h2>
     <p>Your processed files are ready for download.</p>
     <button id="processed-download-btn" style="display: none;">Download Processed File</button>
-    <button id="action-download-btn" style="display: none; margin-left: 10px;">Download Action File</button>
   </div>
 
 <script>
@@ -192,21 +191,16 @@
           clearInterval(pollInterval);
           document.getElementById("loader").style.display = "none";
 
-          if (data.processed_excel && data.action_excel) {
+          if (data.processed_excel) {
             processedBlobURL = URL.createObjectURL(new Blob(
               [base64ToUint8Array(data.processed_excel)],
               { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }
             ));
 
-            actionBlobURL = URL.createObjectURL(new Blob(
-              [base64ToUint8Array(data.action_excel)],
-              { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }
-            ));
 
             document.getElementById("upload-container").style.display = "none";
             document.getElementById("download-section").style.display = "block";
             document.getElementById("processed-download-btn").style.display = "inline-block";
-            document.getElementById("action-download-btn").style.display = "inline-block";
           } else {
             showError();
           }
@@ -252,16 +246,6 @@
     }
   });
 
-  document.getElementById("action-download-btn").addEventListener("click", function () {
-    if (actionBlobURL) {
-      const a = document.createElement("a");
-      a.href = actionBlobURL;
-      a.download = "action.xlsx";
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-    }
-  });
 </script>
 
 </body>

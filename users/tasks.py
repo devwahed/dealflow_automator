@@ -166,19 +166,8 @@ def process_uploaded_file(self, file_data_b64, filename, user_id):
             "Company Name": "Name"
         }, inplace=True)
 
-        # Action sheet
-        df["2 Word Description - CHAT GPT"] = df["2 Word Description"]
-        df["Include"] = ""
-        action_columns = [
-            "Pre-Product Tier", "Post Tier", "Post_Order", "Post Rank", "Index",
-            "Include", "Company Name", "Website", "Description", "Employee Count",
-            "Product Tier - CHAT GPT", "2 Word Description - CHAT GPT"
-        ]
-        action_df = df[[col for col in action_columns if col in df.columns]].copy()
-
-        # Create Excel files
+        # Create Excel file
         processed_output = io.BytesIO()
-        action_output = io.BytesIO()
 
         def write_excel(output, data, sheet_name):
             with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
@@ -200,16 +189,12 @@ def process_uploaded_file(self, file_data_b64, filename, user_id):
                 worksheet.set_column(0, len(data.columns) - 1, 20, wrap_format)
 
         write_excel(processed_output, processed_df, "Processed")
-        write_excel(action_output, action_df, "Action")
-
         processed_output.seek(0)
-        action_output.seek(0)
         save_progress(user.id, 100, 100)
 
         return {
             "status": "success",
             "processed_excel": base64.b64encode(processed_output.getvalue()).decode(),
-            "action_excel": base64.b64encode(action_output.getvalue()).decode(),
         }
 
     except Exception as e:
