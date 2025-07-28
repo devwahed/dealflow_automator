@@ -95,11 +95,31 @@
       font-size: 14px;
       color: #333;
     }
+
+    .drop-zone {
+      border: 2px dashed #007bff;
+      padding: 30px;
+      margin: 20px 0;
+      border-radius: 10px;
+      color: #888;
+      background-color: #f1f9ff;
+      transition: background-color 0.3s ease;
+    }
+
+    .drop-zone.dragover {
+      background-color: #e0f0ff;
+      color: #007bff;
+    }
   </style>
 </head>
 <body>
   <div class="upload-container" id="upload-container">
-    <h2>📤 Upload Your CSV or Excel File</h2>
+    <h2>Upload Your CSV or Excel File</h2>
+
+    <div id="drop-zone" class="drop-zone">
+      Drag & Drop your file here, or click below to browse
+    </div>
+
     <input type="file" id="csvFile" accept=".csv,.xlsx" />
     <button onclick="uploadCSV()">Upload & Process</button>
 
@@ -245,6 +265,38 @@
       document.body.removeChild(a);
     }
   });
+
+  // ✅ Drag & Drop logic
+const dropZone = document.getElementById("drop-zone");
+const fileInput = document.getElementById("csvFile");
+
+// Highlight drop zone on drag
+["dragenter", "dragover"].forEach(event => {
+  dropZone.addEventListener(event, e => {
+    e.preventDefault();
+    e.stopPropagation();
+    dropZone.classList.add("dragover");
+  });
+});
+
+// Remove highlight on drag leave
+["dragleave", "drop"].forEach(event => {
+  dropZone.addEventListener(event, e => {
+    e.preventDefault();
+    e.stopPropagation();
+    dropZone.classList.remove("dragover");
+  });
+});
+
+// Handle drop
+dropZone.addEventListener("drop", e => {
+  e.preventDefault();
+  if (e.dataTransfer.files.length > 0) {
+    const droppedFile = e.dataTransfer.files[0];
+    fileInput.files = e.dataTransfer.files; // Set to input so uploadCSV() can use it
+  }
+});
+
 
 </script>
 
