@@ -124,6 +124,25 @@ def process_uploaded_file(self, file_data_b64, filename, user_id):
             "fundraise_tier", "raised_tier", "fte_tier"
         ]].max(axis=1)
 
+        TIER_4_KEYWORDS = [
+            "Custom software", "custom dev", "patient billing", "marketing automation",
+            "sales enablement", "HCIT", "website design", "website development", "system integrat",
+            "martech", "B2C", "reseller", "blockchain", "crypto", "social network",
+            "streaming service", "marketplace", "content creator", "software consultancy", "call center",
+            "ecommerce", "e-commerce", "edge computing", "lead gen", "lead-gen", "robot",
+            "healthcare data", "health records", "digital marketing", "marketing agency", "healthcare tech"
+        ]
+
+        def matches_tier_4_keyword(desc):
+            if isinstance(desc, str):
+                desc_lower = desc.lower()
+                return any(keyword.lower() in desc_lower for keyword in TIER_4_KEYWORDS)
+            return False
+
+        # Override Pre-Product Tier for keyword matches
+        df["Keyword Match"] = df["Description"].apply(matches_tier_4_keyword)
+        df.loc[df["Keyword Match"], "Pre-Product Tier"] = 4
+
         # Filter rows needing GPT
         df_gpt = df[df["Pre-Product Tier"] != 4].copy()
 
