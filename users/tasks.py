@@ -124,6 +124,25 @@ def process_uploaded_file(self, file_data_b64, filename, user_id):
             "fundraise_tier", "raised_tier", "fte_tier"
         ]].max(axis=1)
 
+        TIER_4_KEYWORDS = [
+            "Custom software", "custom dev", "patient billing", "marketing automation",
+            "sales enablement", "HCIT", "website design", "website development", "system integrat",
+            "martech", "B2C", "reseller", "blockchain", "crypto", "social network",
+            "streaming service", "marketplace", "content creator", "software consultancy", "call center",
+            "ecommerce", "e-commerce", "edge computing", "lead gen", "lead-gen", "robot",
+            "healthcare data", "health records", "digital marketing", "marketing agency", "healthcare tech"
+        ]
+
+        def matches_tier_4_keyword(desc):
+            if isinstance(desc, str):
+                desc_lower = desc.lower()
+                return any(keyword.lower() in desc_lower for keyword in TIER_4_KEYWORDS)
+            return False
+
+        # Override Pre-Product Tier for keyword matches
+        df["Keyword Match"] = df["Description"].apply(matches_tier_4_keyword)
+        df.loc[df["Keyword Match"], "Pre-Product Tier"] = 4
+
         # Filter rows needing GPT
         df_gpt = df[df["Pre-Product Tier"] != 4].copy()
 
@@ -147,7 +166,6 @@ def process_uploaded_file(self, file_data_b64, filename, user_id):
         df["Product Tier - CHAT GPT"] = df["Product Tier - CHAT GPT"].fillna(0)
         df["Post Tier"] = df[["Pre-Product Tier", "Product Tier - CHAT GPT"]].max(axis=1)
         df["Post_Order"] = df["Post Tier"] * 10000 - df["Index"]
-        df["Post Rank"] = df["Post_Order"].rank(method="min", ascending=True).astype(int)
         df["Tier"] = df["Post Tier"]
 
         # Filter Tier 4
@@ -155,7 +173,7 @@ def process_uploaded_file(self, file_data_b64, filename, user_id):
         df = df.sort_values(by=["Post Tier", "Employee Count"], ascending=[True, False])
 
         final_columns = [
-            "Post Rank", "Tier", "Company Name", "Informal Name", "Founding Year", "Country",
+            "Tier", "Company Name", "Informal Name", "Founding Year", "Country",
             "Website", "Description", "Employee Count", "Ownership", "Total Raised",
             "Date of Most Recent Investment", "Executive Title", "Executive First Name",
             "Executive Last Name", "Executive Email", "Investors", "2 Word Description"
@@ -166,19 +184,8 @@ def process_uploaded_file(self, file_data_b64, filename, user_id):
             "Company Name": "Name"
         }, inplace=True)
 
-        # Action sheet
-        df["2 Word Description - CHAT GPT"] = df["2 Word Description"]
-        df["Include"] = ""
-        action_columns = [
-            "Pre-Product Tier", "Post Tier", "Post_Order", "Post Rank", "Index",
-            "Include", "Company Name", "Website", "Description", "Employee Count",
-            "Product Tier - CHAT GPT", "2 Word Description - CHAT GPT"
-        ]
-        action_df = df[[col for col in action_columns if col in df.columns]].copy()
-
-        # Create Excel files
+        # Create Excel file
         processed_output = io.BytesIO()
-        action_output = io.BytesIO()
 
         def write_excel(output, data, sheet_name):
             with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
@@ -200,16 +207,12 @@ def process_uploaded_file(self, file_data_b64, filename, user_id):
                 worksheet.set_column(0, len(data.columns) - 1, 20, wrap_format)
 
         write_excel(processed_output, processed_df, "Processed")
-        write_excel(action_output, action_df, "Action")
-
         processed_output.seek(0)
-        action_output.seek(0)
         save_progress(user.id, 100, 100)
 
         return {
             "status": "success",
             "processed_excel": base64.b64encode(processed_output.getvalue()).decode(),
-            "action_excel": base64.b64encode(action_output.getvalue()).decode(),
         }
 
     except Exception as e:
