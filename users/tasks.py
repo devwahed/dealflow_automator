@@ -166,7 +166,6 @@ def process_uploaded_file(self, file_data_b64, filename, user_id):
         df["Product Tier - CHAT GPT"] = df["Product Tier - CHAT GPT"].fillna(0)
         df["Post Tier"] = df[["Pre-Product Tier", "Product Tier - CHAT GPT"]].max(axis=1)
         df["Post_Order"] = df["Post Tier"] * 10000 - df["Index"]
-        df["Post Rank"] = df["Post_Order"].rank(method="min", ascending=True).astype(int)
         df["Tier"] = df["Post Tier"]
 
         # Filter Tier 4
@@ -174,7 +173,7 @@ def process_uploaded_file(self, file_data_b64, filename, user_id):
         df = df.sort_values(by=["Post Tier", "Employee Count"], ascending=[True, False])
 
         final_columns = [
-            "Post Rank", "Tier", "Company Name", "Informal Name", "Founding Year", "Country",
+            "Tier", "Company Name", "Informal Name", "Founding Year", "Country",
             "Website", "Description", "Employee Count", "Ownership", "Total Raised",
             "Date of Most Recent Investment", "Executive Title", "Executive First Name",
             "Executive Last Name", "Executive Email", "Investors", "2 Word Description"
