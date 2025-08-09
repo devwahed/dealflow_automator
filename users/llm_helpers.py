@@ -11,47 +11,61 @@ client = OpenAI()
 def get_product_tier(description, website):
     prompt = f"""
 You are an analyst at a private equity firm evaluating companies based on their business models.
-For each company, use the following fields:
+
+Input:
 - Website: {website}
 - Description: {description}
-Your task:
-1. Use the provided Description and Website fields to understand the business model.
-2. Do not fabricate information. You are not able to visit or browse the website independently.
-3. Confirm if the Website string supports or aligns with the Description.
-4. Determine whether the business offers software, services, hardware, or a combination.
 
-Then assign a **Tier from 1 to 4** using the rules below:
+Instructions:
+1. Base your judgment ONLY on the given Description and Website text. 
+   Do not invent details and do not assume you can browse the website.
+2. If the description is empty or vague, return Tier 3 unless it clearly matches Tier 4.
+3. Decide if the company’s main offering is:
+   - Software (vertical or horizontal)
+   - Services
+   - Hardware
+   - A combination
 
-### Tiering Criteria:
-- Return 1 if the company sells:
-  - Vertical B2B software
-  - Industrial B2B software
-  - B2B software + hardware
-  - B2B software + services
-- Return 2 if the company sells:
-  - Horizontal B2B software
-- Return 4 if the company is:
-  - A custom software development service
-  - A system integrator
-  - A non-tech or non-recurring services business
-  - A B2C software company
-- Return 3 only if it is truly ambiguous between Tier 2 and Tier 4.
+Tiering Criteria:
+Tier 1:
+- Industry-specific B2B software (e.g., hospital management software, construction ERP, manufacturing automation software)
+- Industrial B2B software
+- B2B software + hardware
+- B2B software + services (where software is the primary value)
 
-### Output Instructions:
-- Return only the number: 1, 2, 3, or 4
-- Do not include any explanation, notes, or formatting.
+Tier 2:
+- Horizontal B2B software (general tools across industries, e.g., CRM, HR software)
+
+Tier 3:
+- Ambiguous between Tier 2 and Tier 4
+- Vague or generic descriptions where it’s not clear if they sell a software product
+
+Tier 4:
+- Custom software development services
+- System integrators
+- IT consulting or IT managed services
+- Non-technology services
+- Physical retail, grocery stores, or agricultural co-ops
+- Consumer-focused products or services
+- B2C software or mobile apps
+
+
+Output:
+- Return only a single number: 1, 2, 3, or 4
+- No extra text, no explanations
 """
     try:
         response = client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[{"role": "user", "content": prompt}],
-            temperature=0.2,
+            temperature=0.0,
         )
         result = response.choices[0].message.content.strip()
         return int(result) if result in {"1", "2", "3", "4"} else None
     except Exception as e:
         print("OpenAI Error (Product Tier):", e)
         return None
+
 
 
 def get_two_word_description(description, website):
