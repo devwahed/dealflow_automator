@@ -44,7 +44,7 @@ def process_uploaded_file(self, file_data_b64, filename, user_id):
 
         def get_fundraise_tier(date_str):
             if pd.isna(date_str):
-                return 3
+                return 4
             try:
                 year = pd.to_datetime(date_str).year
                 for tier, val in config["fundraiser_year"].items():
@@ -52,7 +52,7 @@ def process_uploaded_file(self, file_data_b64, filename, user_id):
                         return int(tier[-1])
             except Exception:
                 pass
-            return 3
+            return 4
 
         def get_total_raised_tier(row):
             raised = row["Total Raised"]
@@ -60,7 +60,7 @@ def process_uploaded_file(self, file_data_b64, filename, user_id):
             if pd.isna(raised) or pd.isna(owner):
                 return None
             owner_group = owner if owner in config["total_raised"]["tier_1"] else "Others"
-            for tier in ["tier_1", "tier_1_extra", "tier_2", "tier_3"]:
+            for tier in ["tier_1", "tier_1_extra", "tier_2"]:
                 limit = config["total_raised"].get(tier, {}).get(owner_group)
                 if limit is not None:
                     try:
@@ -157,11 +157,15 @@ def process_uploaded_file(self, file_data_b64, filename, user_id):
         )
 
         def final_tier(pre_tier, gpt_tier):
+            allowed = {1, 2, 4}
+            if gpt_tier not in allowed:
+                gpt_tier = None
+
             if pre_tier == 4:
                 return 4
             if pre_tier in (1, 2):
-                return 4 if gpt_tier == 4 else pre_tier
-            return gpt_tier if gpt_tier else pre_tier
+                return gpt_tier if gpt_tier in (1, 2) else pre_tier
+            return gpt_tier if gpt_tier in allowed else pre_tier
 
         df["Tier"] = df.apply(lambda r: final_tier(r["Pre-Product Tier"], r["Product Tier - CHAT GPT"]), axis=1)
         df["Post Tier"] = df["Tier"]  # Now consistent

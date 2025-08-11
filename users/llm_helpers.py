@@ -19,39 +19,28 @@ Input:
 Instructions:
 1. Base your judgment ONLY on the given Description and Website text. 
    Do not invent details and do not assume you can browse the website.
-2. If the description is empty or vague, return Tier 3 unless it clearly matches Tier 4.
-3. Decide if the company’s main offering is:
-   - Software (vertical or horizontal)
-   - Services
-   - Hardware
-   - A combination
+2. If the description is empty or vague, default to Tier 4.
+3. Follow this decision process step-by-step:
 
-Tiering Criteria:
-Tier 1:
-- Industry-specific B2B software (e.g., hospital management software, construction ERP, manufacturing automation software)
-- Industrial B2B software
-- B2B software + hardware
-- B2B software + services (where software is the primary value)
+Step 1: Does the company clearly sell software as its main offering?
+    - If NO → Tier 4
+    - If YES → go to Step 2
 
-Tier 2:
-- Horizontal B2B software (general tools across industries, e.g., CRM, HR software)
+Step 2: Is the software designed for a specific industry (healthcare, construction, manufacturing, logistics, etc.)?
+    - If YES → Tier 1
+    - If NO → go to Step 3
 
-Tier 3:
-- Ambiguous between Tier 2 and Tier 4
-- Vague or generic descriptions where it’s not clear if they sell a software product
+Step 3: Is the software general-purpose and usable across multiple industries (e.g., CRM, HR, generic project management)?
+    - If YES → Tier 2
+    - If NO → Tier 4
 
-Tier 4:
-- Custom software development services
-- System integrators
-- IT consulting or IT managed services
-- Non-technology services
-- Physical retail, grocery stores, or agricultural co-ops
-- Consumer-focused products or services
-- B2C software or mobile apps
-
+Tier definitions:
+- Tier 1: Industry-specific B2B software; may include software + hardware or software + services (where software is the primary value)
+- Tier 2: Horizontal/general-purpose B2B software
+- Tier 4: Anything that is not B2B software
 
 Output:
-- Return only a single number: 1, 2, 3, or 4
+- Return only a single number: 1, 2, or 4
 - No extra text, no explanations
 """
     try:
