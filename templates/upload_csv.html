@@ -95,11 +95,31 @@
       font-size: 14px;
       color: #333;
     }
+
+    .drop-zone {
+      border: 2px dashed #007bff;
+      padding: 30px;
+      margin: 20px 0;
+      border-radius: 10px;
+      color: #888;
+      background-color: #f1f9ff;
+      transition: background-color 0.3s ease;
+    }
+
+    .drop-zone.dragover {
+      background-color: #e0f0ff;
+      color: #007bff;
+    }
   </style>
 </head>
 <body>
   <div class="upload-container" id="upload-container">
-    <h2>📤 Upload Your CSV or Excel File</h2>
+    <h2>Upload Your CSV or Excel File</h2>
+
+    <div id="drop-zone" class="drop-zone">
+      Drag & Drop your file here, or click below to browse
+    </div>
+
     <input type="file" id="csvFile" accept=".csv,.xlsx" />
     <button onclick="uploadCSV()">Upload & Process</button>
 
@@ -116,7 +136,6 @@
     <h2>✅ File Ready</h2>
     <p>Your processed files are ready for download.</p>
     <button id="processed-download-btn" style="display: none;">Download Processed File</button>
-    <button id="action-download-btn" style="display: none; margin-left: 10px;">Download Action File</button>
   </div>
 
 <script>
@@ -192,21 +211,16 @@
           clearInterval(pollInterval);
           document.getElementById("loader").style.display = "none";
 
-          if (data.processed_excel && data.action_excel) {
+          if (data.processed_excel) {
             processedBlobURL = URL.createObjectURL(new Blob(
               [base64ToUint8Array(data.processed_excel)],
               { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }
             ));
 
-            actionBlobURL = URL.createObjectURL(new Blob(
-              [base64ToUint8Array(data.action_excel)],
-              { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }
-            ));
 
             document.getElementById("upload-container").style.display = "none";
             document.getElementById("download-section").style.display = "block";
             document.getElementById("processed-download-btn").style.display = "inline-block";
-            document.getElementById("action-download-btn").style.display = "inline-block";
           } else {
             showError();
           }
@@ -252,16 +266,38 @@
     }
   });
 
-  document.getElementById("action-download-btn").addEventListener("click", function () {
-    if (actionBlobURL) {
-      const a = document.createElement("a");
-      a.href = actionBlobURL;
-      a.download = "action.xlsx";
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-    }
+  // ✅ Drag & Drop logic
+const dropZone = document.getElementById("drop-zone");
+const fileInput = document.getElementById("csvFile");
+
+// Highlight drop zone on drag
+["dragenter", "dragover"].forEach(event => {
+  dropZone.addEventListener(event, e => {
+    e.preventDefault();
+    e.stopPropagation();
+    dropZone.classList.add("dragover");
   });
+});
+
+// Remove highlight on drag leave
+["dragleave", "drop"].forEach(event => {
+  dropZone.addEventListener(event, e => {
+    e.preventDefault();
+    e.stopPropagation();
+    dropZone.classList.remove("dragover");
+  });
+});
+
+// Handle drop
+dropZone.addEventListener("drop", e => {
+  e.preventDefault();
+  if (e.dataTransfer.files.length > 0) {
+    const droppedFile = e.dataTransfer.files[0];
+    fileInput.files = e.dataTransfer.files; // Set to input so uploadCSV() can use it
+  }
+});
+
+
 </script>
 
 </body>
